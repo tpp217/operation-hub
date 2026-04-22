@@ -200,6 +200,30 @@ a:hover { color: var(--blue-2); }
 .nav-item--disabled { cursor: not-allowed; opacity: 0.55; }
 .nav-item--disabled:hover { background: transparent; }
 
+/* 子メニュー */
+.nav-item--child {
+  padding: 5px 10px 5px 24px;
+  font-size: 12px;
+  color: var(--text-2);
+  gap: 6px;
+}
+.nav-item--child .nav-item__arrow {
+  color: var(--text-mute);
+  font-size: 11px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.nav-item--child .nav-item__name {
+  font-weight: 400;
+}
+.nav-item--child.active {
+  background: var(--blue-soft);
+  border-color: var(--blue-border);
+  color: var(--blue-2);
+}
+.nav-item--child.active .nav-item__arrow { color: var(--blue); }
+.nav-item--child.active .nav-item__name { font-weight: 500; }
+
 .sidebar__footer {
   margin-top: auto;
   padding: 12px;
@@ -619,7 +643,12 @@ const SYSTEMS = [
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
       <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" stroke-linejoin="round"/>
       <path d="M14 3v5h5M9 13h6M9 17h4" stroke-linecap="round"/>
-    </svg>`
+    </svg>`,
+    children: [
+      { label: 'PDF管理',     path: '/pdfs' },
+      { label: 'リマインダー', path: '/reminders' },
+      { label: '送信先',      path: '/recipients' },
+    ]
   }
 ];
 
@@ -650,6 +679,22 @@ SYSTEMS.forEach(sys => {
   `;
   btn.addEventListener('click', () => openSystem(sys.id));
   navList.appendChild(btn);
+
+  // サブリンク (子メニュー)
+  if (Array.isArray(sys.children) && sys.children.length > 0) {
+    sys.children.forEach(child => {
+      const sub = document.createElement('button');
+      sub.className = 'nav-item nav-item--child';
+      sub.dataset.sysId = sys.id;
+      sub.dataset.subPath = child.path;
+      sub.innerHTML = `
+        <span class="nav-item__arrow">└</span>
+        <span class="nav-item__name">${child.label}</span>
+      `;
+      sub.addEventListener('click', () => openSystem(sys.id, child.path));
+      navList.appendChild(sub);
+    });
+  }
 });
 
 // ============ ウェルカム画面カード描画 ============
@@ -689,22 +734,36 @@ const loading = document.getElementById('iframe-loading');
 let currentSysId = null;
 let loadTimer = null;
 
-function openSystem(sysId) {
+function openSystem(sysId, subPath) {
   const sys = SYSTEMS.find(s => s.id === sysId);
   if (!sys) return;
 
   currentSysId = sysId;
 
+  // 遷移先URLを決定（サブパス指定時は子ページへ）
+  const targetUrl = subPath ? sys.url.replace(/\/$/, '') + subPath : sys.url;
+  const childLabel = subPath && sys.children
+    ? (sys.children.find(c => c.path === subPath) || {}).label
+    : null;
+  const displayTitle = childLabel ? `${sys.name} · ${childLabel}` : sys.name;
+
   // サイドバーの active 状態を更新
+  // 子選択中は子のみ active、親のみの場合は親 active
   document.querySelectorAll('.nav-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.sysId === sysId);
+    const sameSys = el.dataset.sysId === sysId;
+    const isChild = el.classList.contains('nav-item--child');
+    if (isChild) {
+      el.classList.toggle('active', sameSys && el.dataset.subPath === subPath);
+    } else {
+      el.classList.toggle('active', sameSys && !subPath);
+    }
   });
 
   // ツールバー更新
-  iframeTitle.textContent = sys.name;
-  openExternal.href = sys.url;
-  fallbackUrl.textContent = sys.url;
-  fallbackOpen.href = sys.url;
+  iframeTitle.textContent = displayTitle;
+  openExternal.href = targetUrl;
+  fallbackUrl.textContent = targetUrl;
+  fallbackOpen.href = targetUrl;
 
   // ビュー切替
   welcome.style.display = 'none';
@@ -714,7 +773,7 @@ function openSystem(sysId) {
   fallback.classList.remove('is-visible');
   loading.classList.add('is-visible');
   iframe.style.visibility = 'hidden';
-  iframe.src = sys.url;
+  iframe.src = targetUrl;
 
   // CSP/X-Frame-Options でブロックされた場合の検出
   // onload は発火するが about:blank のままで中身が空、または never fires のケースあり
