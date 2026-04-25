@@ -661,6 +661,26 @@ const SYSTEMS = [
       <rect x="4" y="3" width="16" height="18" rx="2"/>
       <path d="M8 8h8M8 12h8M8 16h5" stroke-linecap="round"/>
     </svg>`
+  },
+  {
+    id: 'sales',
+    name: 'SALES INSIGHT',
+    sub: '店舗売上分析',
+    desc: '店舗データ・全店舗集計・確定経費の3種Excelを取り込み、店舗×業態×日付軸で売上と経費を多角的に分析します。',
+    url: 'https://sales.utinc.dev',
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M3 21h18" stroke-linecap="round"/>
+      <path d="M5 21V11l4-2v12M11 21V7l4-2v16M17 21V13l4-2v10" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+    children: [
+      { label: 'ダッシュボード', path: '/' },
+      { label: '店舗比較',     path: '/comparison' },
+      { label: '日次トレンド', path: '/trend' },
+      { label: '経費分析',     path: '/expenses' },
+      { label: '詳細メトリクス', path: '/metrics' },
+      { label: 'アップロード', path: '/upload' },
+      { label: 'マスタ管理',   path: '/masters' },
+    ]
   }
 ];
 
