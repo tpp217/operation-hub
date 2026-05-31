@@ -685,6 +685,24 @@ const SYSTEMS = [
   }
 ];
 
+// ============ ユーティリティ ============
+// HTML特殊文字をエスケープ（テンプレート文字列へテキストを差し込む際の XSS 対策）
+// 注意: icon は意図的に SVG マークアップを innerHTML へ流すため、エスケープしない
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// URL のホスト名を安全に取り出す。不正なURLでも例外で全体描画が落ちないようフォールバック
+function safeHost(url) {
+  try {
+    return new URL(url).host;
+  } catch {
+    return String(url ?? '');
+  }
+}
+
 // ============ 時計 ============
 function updateClock() {
   const n = new Date();
@@ -694,8 +712,18 @@ function updateClock() {
   document.getElementById('clock').textContent = `${hh}:${mm}`;
   document.getElementById('date-disp').textContent = `${y}/${mo}/${dd}`;
 }
-setInterval(updateClock, 30000);
-updateClock();
+// 分表示のズレを防ぐため、まず次の分境界に合わせて更新し、以後 60 秒間隔で更新する
+let clockTimer = null;
+function scheduleClock() {
+  updateClock();
+  const msToNextMinute = 60000 - (Date.now() % 60000);
+  clearTimeout(clockTimer);
+  clockTimer = setTimeout(() => {
+    updateClock();
+    setInterval(updateClock, 60000);
+  }, msToNextMinute);
+}
+scheduleClock();
 
 // ============ サイドバー描画 ============
 const navList = document.getElementById('nav-list');
@@ -706,8 +734,8 @@ SYSTEMS.forEach(sys => {
   btn.innerHTML = `
     <span class="nav-item__dot"></span>
     <span class="nav-item__body">
-      <span class="nav-item__name">${sys.name}</span>
-      <span class="nav-item__sub">${sys.sub}</span>
+      <span class="nav-item__name">${esc(sys.name)}</span>
+      <span class="nav-item__sub">${esc(sys.sub)}</span>
     </span>
   `;
   btn.addEventListener('click', () => openSystem(sys.id));
@@ -722,7 +750,7 @@ SYSTEMS.forEach(sys => {
       sub.dataset.subPath = child.path;
       sub.innerHTML = `
         <span class="nav-item__arrow">└</span>
-        <span class="nav-item__name">${child.label}</span>
+        <span class="nav-item__name">${esc(child.label)}</span>
       `;
       sub.addEventListener('click', () => openSystem(sys.id, child.path));
       navList.appendChild(sub);
@@ -739,13 +767,13 @@ SYSTEMS.forEach(sys => {
     <div class="sys-card__head">
       <div class="sys-card__icon">${sys.icon}</div>
       <div>
-        <div class="sys-card__title">${sys.name}</div>
-        <div class="sys-card__sub">${sys.sub}</div>
+        <div class="sys-card__title">${esc(sys.name)}</div>
+        <div class="sys-card__sub">${esc(sys.sub)}</div>
       </div>
     </div>
-    <div class="sys-card__desc">${sys.desc}</div>
+    <div class="sys-card__desc">${esc(sys.desc)}</div>
     <div class="sys-card__foot">
-      <span class="sys-card__url">${new URL(sys.url).host}</span>
+      <span class="sys-card__url">${esc(safeHost(sys.url))}</span>
       <span class="btn btn--sm btn--primary" style="pointer-events:none;">開く</span>
     </div>
   `;
