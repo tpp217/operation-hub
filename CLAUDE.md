@@ -6,7 +6,8 @@
 
 ```
 operation-hub/
-├── index.html              # 単一ファイルアプリ（HTML + CSS + JS + システム定義）
+├── index.html              # アプリ本体（HTML + CSS + JS）
+├── systems.json            # システム定義（サイドバー・カード・iframe 遷移先のすべての出元）
 ├── favicon.svg             # ファビコン
 ├── vercel.json             # Vercel 設定（github.silent = true）
 ├── design-spec/
@@ -26,11 +27,13 @@ operation-hub/
 
 ## システム定義
 
-`index.html` 内 `const SYSTEMS = [...]` がサイドバー・カード・iframe 遷移先のすべての出元。
-新システムを追加する場合はここに `{ id, name, sub, desc, url, icon, children? }` を 1 件追加するだけ。
+`systems.json` がサイドバー・カード・iframe 遷移先のすべての出元。`index.html` は起動時に `fetch('systems.json')` で読み込み、`renderSidebar()` / `renderCards()` で描画する。
+
+新システムを追加する場合は `systems.json` に `{ id, name, sub, desc, url, icon, children? }` を 1 件追加するだけ。
 
 - `children` を持つシステムはサイドバーに子メニューが展開される（`path` で iframe 遷移先のサブパス指定）
 - `url` は本番ドメイン（例 `https://lpd.utinc.dev`）。ローカル開発用 URL は埋め込まない
+- `icon` は SVG 文字列。JSON 化のため改行・タブを含まない 1 行形式で記述する
 
 ## デザイン規約（design-spec/SPEC.md 抜粋）
 
@@ -64,7 +67,7 @@ python -m http.server 8000
 
 ## 環境変数
 
-なし。`.env` は使用していない。すべての遷移先 URL は `index.html` の `SYSTEMS` 配列にハードコード。
+なし。`.env` は使用していない。すべての遷移先 URL は `systems.json` にハードコード。
 
 ## Git ワークフロー
 
@@ -84,5 +87,4 @@ python -m http.server 8000
 ## TODO / 未対応
 
 - システム数が増えた場合のサイドバー検索 / フィルタ
-- `SYSTEMS` 配列を別 JSON に分離するか（現状は HTML 直書き）
 - `iframe` 埋め込み不可サイトの自動検知（現状は 6 秒タイムアウト推測）

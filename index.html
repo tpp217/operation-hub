@@ -598,92 +598,8 @@ a:hover { color: var(--blue-2); }
 
 <script>
 // ============ システム定義 ============
-const SYSTEMS = [
-  {
-    id: 'closing',
-    name: 'CLOSING AUTO',
-    sub: '締め作業自動化',
-    desc: '月次・日次の締め作業を自動化し、経理処理の工数を削減します。',
-    url: 'https://closing.utinc.dev',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <rect x="3" y="4" width="18" height="16" rx="2"/>
-      <path d="M3 10h18M8 4v4M16 4v4" stroke-linecap="round"/>
-      <path d="M8 14l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`
-  },
-  {
-    id: 'media',
-    name: 'MEDIA-MGR',
-    sub: '媒体管理システム',
-    desc: '広告媒体・掲載先の情報を一元管理し、出稿状況を可視化します。',
-    url: 'https://media.utinc.dev',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <rect x="3" y="5" width="18" height="14" rx="2"/>
-      <path d="M3 9h18M7 5v14M13 9v10" stroke-linecap="round"/>
-    </svg>`
-  },
-  {
-    id: 'nexus',
-    name: 'NEXUS OPS',
-    sub: '店舗・スタッフ分析',
-    desc: '店舗ごとの業績とスタッフのパフォーマンスを分析します。',
-    url: 'https://nexus.utinc.dev',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <path d="M3 17l6-6 4 4 7-8" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="9" cy="11" r="1.5" fill="currentColor" stroke="none"/>
-      <circle cx="13" cy="15" r="1.5" fill="currentColor" stroke="none"/>
-      <circle cx="20" cy="7" r="1.5" fill="currentColor" stroke="none"/>
-    </svg>`
-  },
-  {
-    id: 'lpd',
-    name: 'LINE PDF',
-    sub: 'PDF配信システム',
-    desc: 'LINE経由でPDFを配信。送信履歴や既読状況を確認できます。',
-    url: 'https://lpd.utinc.dev',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" stroke-linejoin="round"/>
-      <path d="M14 3v5h5M9 13h6M9 17h4" stroke-linecap="round"/>
-    </svg>`,
-    children: [
-      { label: 'PDF管理',     path: '/pdfs' },
-      { label: 'リマインダー', path: '/reminders' },
-      { label: '送信先',      path: '/recipients' },
-      { label: '送信履歴',    path: '/history' },
-    ]
-  },
-  {
-    id: 'tmpl',
-    name: 'TEMPLATE',
-    sub: 'テンプレートライブラリ',
-    desc: 'Excel / Word ファイルをテンプレートとして保管・共有・ダウンロードできます。',
-    url: 'https://template.utinc.dev',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <rect x="4" y="3" width="16" height="18" rx="2"/>
-      <path d="M8 8h8M8 12h8M8 16h5" stroke-linecap="round"/>
-    </svg>`
-  },
-  {
-    id: 'sales',
-    name: 'SALES INSIGHT',
-    sub: '店舗売上分析',
-    desc: '店舗データ・全店舗集計・確定経費の3種Excelを取り込み、店舗×業態×日付軸で売上と経費を多角的に分析します。',
-    url: 'https://sales.utinc.dev',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-      <path d="M3 21h18" stroke-linecap="round"/>
-      <path d="M5 21V11l4-2v12M11 21V7l4-2v16M17 21V13l4-2v10" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>`,
-    children: [
-      { label: 'ダッシュボード', path: '/' },
-      { label: '店舗比較',     path: '/comparison' },
-      { label: '日次トレンド', path: '/trend' },
-      { label: '経費分析',     path: '/expenses' },
-      { label: '詳細メトリクス', path: '/metrics' },
-      { label: 'アップロード', path: '/upload' },
-      { label: 'マスタ管理',   path: '/masters' },
-    ]
-  }
-];
+// システム定義は systems.json に分離。fetch で読み込んでから描画する
+let SYSTEMS = [];
 
 // ============ ユーティリティ ============
 // HTML特殊文字をエスケープ（テンプレート文字列へテキストを差し込む際の XSS 対策）
@@ -727,59 +643,81 @@ scheduleClock();
 
 // ============ サイドバー描画 ============
 const navList = document.getElementById('nav-list');
-SYSTEMS.forEach(sys => {
-  const btn = document.createElement('button');
-  btn.className = 'nav-item';
-  btn.dataset.sysId = sys.id;
-  btn.innerHTML = `
-    <span class="nav-item__dot"></span>
-    <span class="nav-item__body">
-      <span class="nav-item__name">${esc(sys.name)}</span>
-      <span class="nav-item__sub">${esc(sys.sub)}</span>
-    </span>
-  `;
-  btn.addEventListener('click', () => openSystem(sys.id));
-  navList.appendChild(btn);
+function renderSidebar() {
+  navList.innerHTML = '';
+  SYSTEMS.forEach(sys => {
+    const btn = document.createElement('button');
+    btn.className = 'nav-item';
+    btn.dataset.sysId = sys.id;
+    btn.innerHTML = `
+      <span class="nav-item__dot"></span>
+      <span class="nav-item__body">
+        <span class="nav-item__name">${esc(sys.name)}</span>
+        <span class="nav-item__sub">${esc(sys.sub)}</span>
+      </span>
+    `;
+    btn.addEventListener('click', () => openSystem(sys.id));
+    navList.appendChild(btn);
 
-  // サブリンク (子メニュー)
-  if (Array.isArray(sys.children) && sys.children.length > 0) {
-    sys.children.forEach(child => {
-      const sub = document.createElement('button');
-      sub.className = 'nav-item nav-item--child';
-      sub.dataset.sysId = sys.id;
-      sub.dataset.subPath = child.path;
-      sub.innerHTML = `
-        <span class="nav-item__arrow">└</span>
-        <span class="nav-item__name">${esc(child.label)}</span>
-      `;
-      sub.addEventListener('click', () => openSystem(sys.id, child.path));
-      navList.appendChild(sub);
-    });
-  }
-});
+    // サブリンク (子メニュー)
+    if (Array.isArray(sys.children) && sys.children.length > 0) {
+      sys.children.forEach(child => {
+        const sub = document.createElement('button');
+        sub.className = 'nav-item nav-item--child';
+        sub.dataset.sysId = sys.id;
+        sub.dataset.subPath = child.path;
+        sub.innerHTML = `
+          <span class="nav-item__arrow">└</span>
+          <span class="nav-item__name">${esc(child.label)}</span>
+        `;
+        sub.addEventListener('click', () => openSystem(sys.id, child.path));
+        navList.appendChild(sub);
+      });
+    }
+  });
+}
 
 // ============ ウェルカム画面カード描画 ============
 const grid = document.getElementById('system-grid');
-SYSTEMS.forEach(sys => {
-  const card = document.createElement('button');
-  card.className = 'sys-card';
-  card.innerHTML = `
-    <div class="sys-card__head">
-      <div class="sys-card__icon">${sys.icon}</div>
-      <div>
-        <div class="sys-card__title">${esc(sys.name)}</div>
-        <div class="sys-card__sub">${esc(sys.sub)}</div>
+function renderCards() {
+  grid.innerHTML = '';
+  SYSTEMS.forEach(sys => {
+    const card = document.createElement('button');
+    card.className = 'sys-card';
+    card.innerHTML = `
+      <div class="sys-card__head">
+        <div class="sys-card__icon">${sys.icon}</div>
+        <div>
+          <div class="sys-card__title">${esc(sys.name)}</div>
+          <div class="sys-card__sub">${esc(sys.sub)}</div>
+        </div>
       </div>
-    </div>
-    <div class="sys-card__desc">${esc(sys.desc)}</div>
-    <div class="sys-card__foot">
-      <span class="sys-card__url">${esc(safeHost(sys.url))}</span>
-      <span class="btn btn--sm btn--primary" style="pointer-events:none;">開く</span>
-    </div>
-  `;
-  card.addEventListener('click', () => openSystem(sys.id));
-  grid.appendChild(card);
-});
+      <div class="sys-card__desc">${esc(sys.desc)}</div>
+      <div class="sys-card__foot">
+        <span class="sys-card__url">${esc(safeHost(sys.url))}</span>
+        <span class="btn btn--sm btn--primary" style="pointer-events:none;">開く</span>
+      </div>
+    `;
+    card.addEventListener('click', () => openSystem(sys.id));
+    grid.appendChild(card);
+  });
+}
+
+// ============ システム定義ロード ============
+fetch('systems.json', { cache: 'no-cache' })
+  .then(r => {
+    if (!r.ok) throw new Error(`systems.json fetch failed: ${r.status}`);
+    return r.json();
+  })
+  .then(data => {
+    SYSTEMS = data;
+    renderSidebar();
+    renderCards();
+  })
+  .catch(err => {
+    console.error(err);
+    navList.innerHTML = '<div style="padding:12px;color:var(--red);font-size:12px;">システム定義の読み込みに失敗しました</div>';
+  });
 
 // ============ iframe 表示制御 ============
 const welcome = document.getElementById('welcome');
