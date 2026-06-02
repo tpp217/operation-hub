@@ -61,5 +61,13 @@
       { "label": "アップロード",   "path": "/upload" },
       { "label": "マスタ管理",     "path": "/masters" }
     ]
+  },
+  {
+    "id": "flow",
+    "name": "FLOW OPS",
+    "sub": "業務フロー管理",
+    "desc": "業務プロセスをフロー図として可視化し、各工程の担当・ステータスを一元管理します。",
+    "url": "https://flow.utinc.dev",
+    "icon": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"9\" y=\"3\" width=\"6\" height=\"5\" rx=\"1.5\"/><rect x=\"3\" y=\"16\" width=\"6\" height=\"5\" rx=\"1.5\"/><rect x=\"15\" y=\"16\" width=\"6\" height=\"5\" rx=\"1.5\"/><path d=\"M12 8v4M12 12H6v4M12 12h6v4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>"
   }
 ]
