@@ -348,4 +348,85 @@ Inter + Noto Sans JP + JetBrains Mono を読込。`body` に `var(--font-sans)`�
 
 ---
 
-**WorkLedger Design System · v1.0 · 2026/04**
+## 12. テーマ拡張仕様 v1.1（カラースキーム切替・ダークモード・HeroUIバリアント）
+
+> media-manager での実装（[github.com/tpp217/media-manager](https://github.com/tpp217/media-manager) の `css/style.css` / `js/theme.js`）を正本として抽出。**既定表示は本仕様書 v1.0（第5章）の「角丸控えめ・カードに影なし」ルールを維持したまま**、ユーザーが明示的に切り替えた場合のみ見た目を拡張する。media-manager は WorkLedger 仕様の適用対象外（サイバーパンクYellowテーマの例外プロジェクト）だが、その実装で確立したトークン設計・切替の仕組み自体は他システムにも展開可能な形で本節に正式採用する。
+
+### 12.1 2軸の切替
+
+| 軸 | 値 | 制御属性 | 既定値 |
+|---|---|---|---|
+| ライト/ダーク | `light` / `dark` | `<html data-theme="...">` | `light`（`prefers-color-scheme`もフォールバック考慮） |
+| カラースキーム | `default` / `heroui` | `<html data-color-scheme="...">` | `default` |
+
+- 2軸は独立。`data-theme="dark"` と `data-color-scheme="heroui"` は組み合わせ可能（4パターン）。
+- `default` スキームでは **第5章のルールをそのまま維持**（角丸控えめ・カードに影なし・ボーダーで面を区切る）。
+- `heroui` スキームを選択した場合のみ、角丸拡大・カードへのソフトシャドウ付与が**opt-inで有効化**される（12.3参照）。第5章の「カードに box-shadow を付けない」は `default` スキームに対する既定ルールであり、`heroui` 選択時はこの限りではない。
+
+### 12.2 カラー拡張
+
+既存トークン（第2章）に加え、ダークモード用の値を追加する。ハードコード hex 禁止の原則は継続。
+
+```css
+/* heroui スキーム（プライマリを青紫寄りに） */
+:root[data-color-scheme="heroui"] {
+  --blue:        #6D4EF5;
+  --blue-2:      #5A3BE0;
+  --blue-soft:   #EFEAFE;
+  --blue-border: #D5C8FC;
+  --purple:      #7828C8;
+  --purple-soft: #F2E8FC;
+}
+
+/* ダークモード（ニュートラル + ステータス色を反転） */
+:root[data-theme="dark"] {
+  --bg: #0E1015; --surface: #16181F; --surface-2: #1C1F27; --surface-3: #262A34;
+  --border: #2A2E38; --border-strong: #3A3F4B;
+  --text: #F2F4F7; --text-2: #B4BAC5; --text-3: #838B99; --text-mute: #565D6A;
+  --blue: #5B9DFF; --blue-2: #7EB1FF;
+  --blue-soft: rgba(91,157,255,.16); --blue-border: rgba(91,157,255,.38);
+  --green: #34D399; --green-soft: rgba(52,211,153,.14);
+  --amber: #FBBF24; --amber-soft: rgba(251,191,36,.14);
+  --red: #F87171; --red-soft: rgba(248,113,113,.14);
+  --purple: #A78BFA; --purple-soft: rgba(167,139,250,.14);
+}
+/* dark × heroui は --blue 系のみ再上書き（暗背景での可読性を優先） */
+:root[data-theme="dark"][data-color-scheme="heroui"] {
+  --blue: #9385FF; --blue-2: #AA9EFF;
+  --blue-soft: rgba(147,133,255,.2); --blue-border: rgba(147,133,255,.42);
+}
+```
+
+> **重要:** `default × light` の見た目は本節導入前と完全に一致させること（既存システムへの無断デザイン変更を避けるため）。
+
+### 12.3 角丸・影の拡張（`heroui` スキーム限定）
+
+```css
+:root {
+  --radius-sm: 4px; --radius: 6px; --radius-lg: 8px; /* v1.0 既定値のまま */
+}
+:root[data-color-scheme="heroui"] {
+  --radius-sm: 8px; --radius: 12px; --radius-lg: 16px; --radius-full: 999px;
+  --shadow-sm: 0 1px 2px rgba(17,24,39,.04), 0 1px 3px rgba(17,24,39,.06);
+  --shadow-md: 0 2px 6px rgba(17,24,39,.05), 0 6px 16px rgba(17,24,39,.08);
+}
+/* heroui 選択時のみ、カード等に影を許可する */
+:root[data-color-scheme="heroui"] .card {
+  box-shadow: var(--shadow-sm);
+}
+```
+
+### 12.4 トグルUI・永続化
+
+- ヘッダー/トップバーに配置。カラースキームは2色のスウォッチボタン（circle）、ライト/ダークはサン/ムーンアイコンの単一ボタン。
+- `localStorage` キーは `wl_theme_mode`（`light`|`dark`）/ `wl_color_scheme`（`default`|`heroui`）に統一し、システムをまたいでも同じキー名で管理する（ドメインが異なるため保存自体は共有されないが、実装・保守を揃える目的）。
+- FOUC防止のため、`<head>` の最も早い位置で同期的に `localStorage` を読み `data-theme` / `data-color-scheme` を確定させてからCSSを適用する。実装例は media-manager の `index.html` 冒頭スクリプトを参照。
+
+### 12.5 適用先の判断
+
+- 本節は **opt-in の拡張仕様**。既存システムへ自動適用されるものではなく、システムごとに導入するかを個別判断する。
+- 導入する場合も `default × light` は必ず本書 v1.0 の見た目を維持し、`heroui` / `dark` は追加機能として提供すること。
+
+---
+
+**WorkLedger Design System · v1.1 · 2026/07**
